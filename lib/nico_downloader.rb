@@ -6,6 +6,7 @@
 
 require "rss"
 require "tmpdir"
+require 'mechanize'
 
 class NicoDownloader
   attr_accessor :agent
@@ -114,12 +115,11 @@ class NicoDownloader
     Dir.mkdir movie_dir unless File.exist?(movie_dir)
     path = File.join(movie_dir, "#{nico_name}.#{video_type}")
     begin
-      @logger.info "[INFO] download start: #{nico_name}"
+      @logger.info "download start: #{nico_name}"
       File.open(path, "wb:ASCII-8BIT") do  |file|
         file.write @agent.get_file(url)
       end
-      create_thumbnail(path)
-      @logger.info "[INFO] download completed: #{nico_name}"
+      @logger.info "download completed: #{nico_name}"
     rescue Exception
       @logger.fatal "download failed: #{nico_name} #{$!}"
       @logger.fatal "#{$@}"
@@ -183,6 +183,6 @@ class NicoDownloader
   end
 
   def tmpdir
-    File.join(Dir.tmpdir, Time.now.to_i)
+    File.join(Dir.tmpdir, Time.now.to_i.to_s)
   end
 end

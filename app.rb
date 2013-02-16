@@ -26,11 +26,17 @@ end
 post '/video' do
   video = params['sm']
   Thread.new do
-    logger = WorkerLogger.new("video/#{video}")
-    LOGGERS << logger
-    downloader = NicoDownloader.new(logger)
-    downloader.download(video)
+    begin
+      logger = WorkerLogger.new("video/#{video}")
+      LOGGERS << logger
+      downloader = NicoDownloader.new(logger)
+      downloader.download(video)
+    rescue
+      p $!
+      p $@
+    end
   end
+  "Started"
 end
 
 get '/list' do
