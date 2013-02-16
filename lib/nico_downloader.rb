@@ -33,9 +33,13 @@ class NicoDownloader
   end
 
   def login
+    return if login?
     if @mail and @pass
       res = @agent.post 'https://secure.nicovideo.jp/secure/login?site=niconico','mail' => @mail,'password' => @pass
-      res.header["x-niconico-authflag"] != "0"
+      if res.header["x-niconico-authflag"] == "0"
+        @logger.fatal "Failed to login #{rss}"
+        raise "Login Error"
+      end
     else
       @logger.fatal "Mail or pass is not set mail: #{@mail}, pass: #{@pass}"
       raise "Login Error"
@@ -87,7 +91,7 @@ class NicoDownloader
     end
   end
 
-  def download(nico_name, dir = tmpdir)
+  def download(nico_name, dir)
     login
     @logger.info "download sequence start: #{nico_name}"
     url = get_flv_url(nico_name)
@@ -110,12 +114,9 @@ class NicoDownloader
       raise "movie page load error"
     end
 
-    Dir.mkdir dir unless File.exist?(dir)
-    movie_dir = File.join(dir, "#{nico_name}")
-    Dir.mkdir movie_dir unless File.exist?(movie_dir)
-    path = File.join(movie_dir, "#{nico_name}.#{video_type}")
+    path = File.join(dir, "#{nico_name}.#{video_type}")
     begin
-      @logger.info "download start: #{nico_name}"
+      @logger.info "download start: #{nico_name} to #{path}"
       File.open(path, "wb:ASCII-8BIT") do  |file|
         file.write @agent.get_file(url)
       end
@@ -129,7 +130,7 @@ class NicoDownloader
 
     sleep 5
 
-    info_path = File.join(movie_dir, "#{nico_name}_info.xml")
+    info_path = File.join(dir, "#{nico_name}_info.xml")
     begin
       info = get_info(nico_name)
       File.open(info_path, "wb:ASCII-8BIT") do  |file|
@@ -146,7 +147,7 @@ class NicoDownloader
     @error_count = 0
   end
 
-  def rss_download(rss_url, dir = tmpdir)
+  def rss_download(rss_url, dir)
     begin
       rss = get_rss(rss_url)
       @rss_error_count = 0
@@ -180,9 +181,5 @@ class NicoDownloader
       @logger.debug "Sleep 7 seconds"
       sleep 7
     end
-  end
-
-  def tmpdir
-    File.join(Dir.tmpdir, Time.now.to_i.to_s)
   end
 end

@@ -3,6 +3,7 @@ $LOAD_PATH << 'lib'
 require 'sinatra'
 require 'nico_downloader'
 require 'worker_logger'
+require 'dropbox_uploader'
 
 LOGGERS = []
 
@@ -27,10 +28,15 @@ post '/video' do
   video = params['sm']
   Thread.new do
     begin
-      logger = WorkerLogger.new("video/#{video}")
-      LOGGERS << logger
-      downloader = NicoDownloader.new(logger)
-      downloader.download(video)
+      Dir.mktmpdir do |dir|
+        logger = WorkerLogger.new("video/#{video}")
+        LOGGERS << logger
+        downloader = NicoDownloader.new(logger)
+        downloader.download(video, dir)
+
+        uploader = DropboxUploader.new(logger)
+        uploader.upload_directory(dir)
+      end
     rescue
       p $!
       p $@
@@ -52,11 +58,22 @@ end
 post '/list' do
   list = params['mylist']
   Thread.new do
-    logger = WorkerLogger.new("mylist/#{list}")
-    LOGGERS << logger
-    downloader = NicoDownloader.new(logger)
-    downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0")
+    begin
+      Dir.mktmpdir do |dir|
+        logger = WorkerLogger.new("mylist/#{list}")
+        LOGGERS << logger
+        downloader = NicoDownloader.new(logger)
+        downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
+
+        uploader = DropboxUploader.new(logger)
+        uploader.upload_directory(dir)
+      end
+    rescue
+      p $!
+      p $@
+    end
   end
+  "Started"
 end
 
 get '/log' do
