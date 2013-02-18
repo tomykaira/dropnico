@@ -17,6 +17,7 @@ class DropboxUploader
     content = File.read(file_path, mode: "rb")
     @logger.info "Uploading #{file_path}"
     @client.upload(File.basename(file_path), content)
+    @logger.info "Done!"
   end
 
   def upload_directory(dir)
