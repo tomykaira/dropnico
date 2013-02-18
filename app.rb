@@ -37,10 +37,10 @@ end
 post '/nico/video' do
   video = params['sm']
   Thread.new do
+    logger = WorkerLogger.new("nico/video/#{video}")
+    LOGGERS << logger
     begin
       Dir.mktmpdir do |dir|
-        logger = WorkerLogger.new("nico/video/#{video}")
-        LOGGERS << logger
         downloader = NicoDownloader.new(logger)
         downloader.download(video, dir)
 
@@ -48,7 +48,9 @@ post '/nico/video' do
         uploader.upload_directory(dir)
       end
     rescue
+      logger.fatal($!)
       p $!
+      logger.fatal($@)
       p $@
     end
   end
@@ -58,10 +60,10 @@ end
 post '/nico/list' do
   list = params['mylist']
   Thread.new do
+    logger = WorkerLogger.new("nico/mylist/#{list}")
+    LOGGERS << logger
     begin
       Dir.mktmpdir do |dir|
-        logger = WorkerLogger.new("nico/mylist/#{list}")
-        LOGGERS << logger
         downloader = NicoDownloader.new(logger)
         downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
 
@@ -69,7 +71,9 @@ post '/nico/list' do
         uploader.upload_directory(dir)
       end
     rescue
+      logger.fatal($!)
       p $!
+      logger.fatal($@)
       p $@
     end
   end
@@ -102,10 +106,10 @@ end
 
 def run_youtube_downloader(video_id)
   Thread.new do
+    logger = WorkerLogger.new("youtube/video/#{video_id}")
+    LOGGERS << logger
     begin
       Dir.mktmpdir do |dir|
-        logger = WorkerLogger.new("youtube/video/#{video_id}")
-        LOGGERS << logger
         downloader = YoutubeDownloader.new(logger, video_id)
         downloader.download(dir)
 
@@ -113,7 +117,9 @@ def run_youtube_downloader(video_id)
         uploader.upload_directory(dir)
       end
     rescue
+      logger.fatal($!)
       p $!
+      logger.fatal($@)
       p $@
     end
   end
