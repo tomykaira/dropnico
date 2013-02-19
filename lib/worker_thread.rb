@@ -31,7 +31,7 @@ module Kernel
       raise e if n <= 0
 
       n -= 1
-      thread_logger.fatal "$!, Retrying..."
+      thread_logger.fatal "#{$!}, Retrying..."
       retry
     end
   end
