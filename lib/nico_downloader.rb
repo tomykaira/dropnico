@@ -6,49 +6,21 @@
 
 require "rss"
 require "tmpdir"
-require 'mechanize'
+require 'lib/nico/agent'
 
 class NicoDownloader
   attr_accessor :agent
 
-  def agent_init
-    @agent = Mechanize.new
-    @agent.read_timeout = 30
-    @agent.open_timeout = 30
-    @agent.max_history = 0
-    @agent.user_agent_alias = 'Windows Mozilla'
-  end
-
   def initialize(logger)
-    agent_init
+    @agent = Nico::Agent.new(logger)
     @logger = logger
-    @mail = ENV['NICO_MAIL']
-    @pass = ENV['NICO_PASS']
     @error_count = 0
     @rss_error_count = 0
   end
 
-  def login?
-    @agent.get("http://www.nicovideo.jp/").header["x-niconico-authflag"] != "0"
-  end
-
-  def login
-    return if login?
-    if @mail and @pass
-      res = @agent.post 'https://secure.nicovideo.jp/secure/login?site=niconico','mail' => @mail,'password' => @pass
-      if res.header["x-niconico-authflag"] == "0"
-        @logger.fatal "Failed to login #{rss}"
-        raise "Login Error"
-      end
-    else
-      @logger.fatal "Mail or pass is not set mail: #{@mail}, pass: #{@pass}"
-      raise "Login Error"
-    end
-  end
-
   def get_rss(rss_url)
     begin
-      login
+      @agent.login
       @logger.info "get rss data: #{rss_url}"
       page = @agent.get rss_url
       RSS::Parser.parse(page.body, true)
@@ -65,8 +37,7 @@ class NicoDownloader
 
   def get_flv_url(nico_name)
     begin
-      get_api = "http://www.nicovideo.jp/api/getflv/#{nico_name}"
-      page = @agent.get get_api
+      page = @agent.get_api("/getflv/#{nico_name}")
       params = Hash[page.body.split("&").map {|value| value.split("=")}]
       url = URI.unescape(params["url"])
       @logger.info "download url => #{url}"
@@ -80,8 +51,7 @@ class NicoDownloader
 
   def get_info(nico_name)
     begin
-      get_api = "http://www.nicovideo.jp/api/getthumbinfo/#{nico_name}"
-      page = @agent.get get_api
+      page = @agent.get_api("/getthumbinfo/#{nico_name}")
       @logger.info "movie info download completed: #{nico_name}"
       page.body
     rescue Exception
@@ -92,7 +62,7 @@ class NicoDownloader
   end
 
   def download(nico_name, dir)
-    login
+    @agent.login
     @logger.info "download sequence start: #{nico_name}"
     url = get_flv_url(nico_name)
 
