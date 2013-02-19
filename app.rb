@@ -2,10 +2,8 @@ $LOAD_PATH << File.dirname(__FILE__)
 $LOAD_PATH << File.dirname(__FILE__) + "/lib"
 
 require 'sinatra'
-require 'nico_downloader'
-require 'youtube_downloader'
-require 'worker_thread'
-require 'dropbox_uploader'
+require 'lib/nico_downloader'
+require 'lib/youtube'
 
 LOGGERS = []
 
@@ -41,8 +39,7 @@ post '/nico/video' do
       downloader = NicoDownloader.new(logger)
       downloader.download(video, dir)
 
-      uploader = DropboxUploader.new(logger)
-      uploader.upload_directory(dir)
+      DropboxUploader.upload_directory(logger, dir)
     end
   end
   "Started"
@@ -55,8 +52,7 @@ post '/nico/list' do
       downloader = NicoDownloader.new(logger)
       downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
 
-      uploader = DropboxUploader.new(logger)
-      uploader.upload_directory(dir)
+      DropboxUploader.upload_directory(logger, dir)
     end
   end
   "Started"
@@ -64,39 +60,17 @@ end
 
 post '/youtube/video' do
   video_id = params['v']
-  run_youtube_downloader(video_id)
+  Youtube.run_thread(video_id)
   "Started #{video_id}"
 end
 
 post '/youtube/embedded' do
-  ids = extract_embedded_video_ids(params['url'])
-  ids.map { |id| run_youtube_downloader(id) }
+  ids = Youtube.embedded_ids(params['url'])
+  ids.each { |id| Youtube.run_thread(id) }
 
   "Started #{ids.join(" ")}"
 end
 
-def extract_embedded_video_ids(url)
-  agent = Mechanize.new
-  agent.get(url)
-  agent.page.search('embed').map do |embed|
-    if embed.attributes['type'].value == "application/x-shockwave-flash"
-      embed.attributes['src'].value =~ /www\.youtube\.com\/v\/([^&?]*)/
-      $1
-    end
-  end.compact
-end
-
-def run_youtube_downloader(video_id)
-  WorkerThread.new("youtube/video/#{video_id}") do |logger|
-    Dir.mktmpdir do |dir|
-      downloader = YoutubeDownloader.new(logger, video_id)
-      downloader.download(dir)
-
-      uploader = DropboxUploader.new(logger)
-      uploader.upload_directory(dir)
-    end
-  end
-end
 
 get '/log' do
   LOGGERS.map do |l|

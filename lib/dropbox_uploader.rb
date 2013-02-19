@@ -4,6 +4,10 @@ Dropbox::API::Config.app_key    = ENV['DROPBOX_APP_KEY']
 Dropbox::API::Config.app_secret = ENV['DROPBOX_APP_SECRET']
 
 class DropboxUploader
+  def self.upload_directory(logger, dir)
+    self.new(logger).upload_directory(dir)
+  end
+
   def initialize(logger)
     @logger = logger
     unless ENV['DROPBOX_CLIENT_TOKEN'] && ENV['DROPBOX_CLIENT_SECRET']
