@@ -5,15 +5,22 @@ class WorkerThread < Thread
     super do
       logger = WorkerLogger.new(jobname)
       LOGGERS << logger
+      Thread.current[:logger] = logger
 
       begin
-        block.call(logger)
+        block.call
       rescue
-        logger.fatal($!)
         p $!
-        logger.fatal($@)
+        thread_logger.fatal($!)
         p $@
+        thread_logger.fatal($@)
       end
     end
+  end
+end
+
+module Kernel
+  def thread_logger
+    Thread.current[:logger] || GLOBAL_LOGGER
   end
 end

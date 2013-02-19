@@ -17,12 +17,12 @@ module Youtube
   end
 
   def run_thread(video_id)
-    WorkerThread.new("youtube/video/#{video_id}") do |logger|
+    WorkerThread.new("youtube/video/#{video_id}") do
       Dir.mktmpdir do |dir|
-        downloader = Video.new(logger, video_id)
+        downloader = Video.new(video_id)
         downloader.download(dir)
 
-        DropboxUploader.upload_directory(logger, dir)
+        DropboxUploader.new.upload_directory(dir)
       end
     end
   end

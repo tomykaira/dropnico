@@ -6,9 +6,8 @@ require 'lib/youtube/url'
 
 module Youtube
   class Video
-    def initialize(logger, video_id)
+    def initialize(video_id)
       @agent = Mechanize.new
-      @logger = logger
       @video_id = video_id
     end
 
@@ -18,18 +17,18 @@ module Youtube
           fetch_video_info
         end
       rescue Exception => e
-        @logger.fatal "info download failed: #{@video_id} #{$!}"
-        @logger.fatal "#{$@}"
+        thread_logger.fatal "info download failed: #{@video_id} #{$!}"
+        thread_logger.fatal "#{$@}"
         raise e
       end
 
       begin
-        @logger.info "Downloading #{filename}..."
+        thread_logger.info "Downloading #{filename}..."
         video = @agent.get(video_url.download_url)
         video.save_as(::File.join(dir, filename))
       rescue Exception => e
-        @logger.fatal "video download failed: #{@video_id} #{$!}"
-        @logger.fatal "#{$@}"
+        thread_logger.fatal "video download failed: #{@video_id} #{$!}"
+        thread_logger.fatal "#{$@}"
         raise e
       end
     end
@@ -55,7 +54,7 @@ module Youtube
       json = $1
 
       unless json
-        @logger.fatal "Failed to find playerConfig JSON object"
+        thread_logger.fatal "Failed to find playerConfig JSON object"
         raise "Failed to find playerConfig JSON object"
       end
 

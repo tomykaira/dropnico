@@ -2,10 +2,14 @@ $LOAD_PATH << File.dirname(__FILE__)
 $LOAD_PATH << File.dirname(__FILE__) + "/lib"
 
 require 'sinatra'
+require 'lib/nico'
 require 'lib/nico_downloader'
 require 'lib/youtube'
+require 'lib/worker_logger'
 
-LOGGERS = []
+GLOBAL_LOGGER = WorkerLogger.new('global')
+LOGGERS = [GLOBAL_LOGGER]
+
 
 get '/'do
   <<HTML
@@ -33,26 +37,19 @@ HTML
 end
 
 post '/nico/video' do
-  video = params['sm']
-  WorkerThread.new("nico/video/#{video}") do |logger|
-    Dir.mktmpdir do |dir|
-      downloader = NicoDownloader.new(logger)
-      downloader.download(video, dir)
-
-      DropboxUploader.upload_directory(logger, dir)
-    end
-  end
-  "Started"
+  nico_name = params['sm']
+  Nico.run_thread(nico_name)
+  "Started #{nico_name}"
 end
 
 post '/nico/list' do
   list = params['mylist']
-  WorkerThread.new do |logger|
+  WorkerThread.new do
     Dir.mktmpdir do |dir|
-      downloader = NicoDownloader.new(logger)
+      downloader = NicoDownloader.new
       downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
 
-      DropboxUploader.upload_directory(logger, dir)
+      DropboxUploader.new.upload_directory(dir)
     end
   end
   "Started"

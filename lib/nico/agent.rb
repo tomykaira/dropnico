@@ -2,9 +2,7 @@ require 'mechanize'
 
 module Nico
   class Agent
-    def initialize(logger)
-      @logger = logger
-
+    def initialize
       @mail = ENV['NICO_MAIL']
       @pass = ENV['NICO_PASS']
 
@@ -24,11 +22,11 @@ module Nico
       if @mail and @pass
         res = @agent.post 'https://secure.nicovideo.jp/secure/login?site=niconico','mail' => @mail,'password' => @pass
         if res.header["x-niconico-authflag"] == "0"
-          @logger.fatal "Failed to login #{rss}"
+          thread_logger.fatal "Failed to login #{rss}"
           raise "Login Error"
         end
       else
-        @logger.fatal "Mail or pass is not set mail: #{@mail}, pass: #{@pass}"
+        thread_logger.fatal "Mail or pass is not set mail: #{@mail}, pass: #{@pass}"
         raise "Login Error"
       end
     end
@@ -44,6 +42,10 @@ module Nico
     def get_api(path)
       path = '/' + path if path[0] != '/'
       get("http://www.nicovideo.jp/api#{path}")
+    end
+
+    def clear_history
+      @agent.history.clear
     end
   end
 end
