@@ -4,7 +4,7 @@ $LOAD_PATH << File.dirname(__FILE__) + "/lib"
 require 'sinatra'
 require 'nico_downloader'
 require 'youtube_downloader'
-require 'worker_logger'
+require 'worker_thread'
 require 'dropbox_uploader'
 
 LOGGERS = []
@@ -36,22 +36,13 @@ end
 
 post '/nico/video' do
   video = params['sm']
-  Thread.new do
-    logger = WorkerLogger.new("nico/video/#{video}")
-    LOGGERS << logger
-    begin
-      Dir.mktmpdir do |dir|
-        downloader = NicoDownloader.new(logger)
-        downloader.download(video, dir)
+  WorkerThread.new("nico/video/#{video}") do |logger|
+    Dir.mktmpdir do |dir|
+      downloader = NicoDownloader.new(logger)
+      downloader.download(video, dir)
 
-        uploader = DropboxUploader.new(logger)
-        uploader.upload_directory(dir)
-      end
-    rescue
-      logger.fatal($!)
-      p $!
-      logger.fatal($@)
-      p $@
+      uploader = DropboxUploader.new(logger)
+      uploader.upload_directory(dir)
     end
   end
   "Started"
@@ -59,22 +50,13 @@ end
 
 post '/nico/list' do
   list = params['mylist']
-  Thread.new do
-    logger = WorkerLogger.new("nico/mylist/#{list}")
-    LOGGERS << logger
-    begin
-      Dir.mktmpdir do |dir|
-        downloader = NicoDownloader.new(logger)
-        downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
+  WorkerThread.new do |logger|
+    Dir.mktmpdir do |dir|
+      downloader = NicoDownloader.new(logger)
+      downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
 
-        uploader = DropboxUploader.new(logger)
-        uploader.upload_directory(dir)
-      end
-    rescue
-      logger.fatal($!)
-      p $!
-      logger.fatal($@)
-      p $@
+      uploader = DropboxUploader.new(logger)
+      uploader.upload_directory(dir)
     end
   end
   "Started"
@@ -105,22 +87,13 @@ def extract_embedded_video_ids(url)
 end
 
 def run_youtube_downloader(video_id)
-  Thread.new do
-    logger = WorkerLogger.new("youtube/video/#{video_id}")
-    LOGGERS << logger
-    begin
-      Dir.mktmpdir do |dir|
-        downloader = YoutubeDownloader.new(logger, video_id)
-        downloader.download(dir)
+  WorkerThread.new("youtube/video/#{video_id}") do |logger|
+    Dir.mktmpdir do |dir|
+      downloader = YoutubeDownloader.new(logger, video_id)
+      downloader.download(dir)
 
-        uploader = DropboxUploader.new(logger)
-        uploader.upload_directory(dir)
-      end
-    rescue
-      logger.fatal($!)
-      p $!
-      logger.fatal($@)
-      p $@
+      uploader = DropboxUploader.new(logger)
+      uploader.upload_directory(dir)
     end
   end
 end
