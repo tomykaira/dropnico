@@ -2,12 +2,12 @@ require 'lib/nico/agent'
 
 module Nico
   class RSS
-    def self.from_list(list)
-      self.new("http://www.nicovideo.jp/mylist/#{list}?rss=1.0")
+    def self.from_list(list, agent = nil)
+      self.new("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", agent)
     end
 
-    def initialize(url)
-      @agent = Nico::Agent.new
+    def initialize(url, agent = nil)
+      @agent = agent || Nico::Agent.new
       @url = url
     end
 

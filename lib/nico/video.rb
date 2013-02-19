@@ -12,9 +12,9 @@ module Nico
   class Video
     attr_reader :nico_name
 
-    def initialize(nico_name)
-      @agent = Nico::Agent.new
+    def initialize(nico_name, agent = nil)
       @nico_name = nico_name
+      @agent = agent || Nico::Agent.new
     end
 
     def download(dir)
