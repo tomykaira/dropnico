@@ -23,4 +23,16 @@ module Kernel
   def thread_logger
     Thread.current[:logger] || GLOBAL_LOGGER
   end
+
+  def retry_at_most(n)
+    begin
+      yield
+    rescue Exception => e
+      raise e if n <= 0
+
+      n -= 1
+      thread_logger.fatal "$!, Retrying..."
+      retry
+    end
+  end
 end

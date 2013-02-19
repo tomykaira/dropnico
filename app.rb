@@ -3,7 +3,6 @@ $LOAD_PATH << File.dirname(__FILE__) + "/lib"
 
 require 'sinatra'
 require 'lib/nico'
-require 'lib/nico_downloader'
 require 'lib/youtube'
 require 'lib/worker_logger'
 
@@ -44,15 +43,8 @@ end
 
 post '/nico/list' do
   list = params['mylist']
-  WorkerThread.new do
-    Dir.mktmpdir do |dir|
-      downloader = NicoDownloader.new
-      downloader.rss_download("http://www.nicovideo.jp/mylist/#{list}?rss=1.0", dir)
-
-      DropboxUploader.new.upload_directory(dir)
-    end
-  end
-  "Started"
+  Nico.download_mylist(list)
+  "Started list #{list}"
 end
 
 post '/youtube/video' do
