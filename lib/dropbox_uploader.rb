@@ -10,6 +10,8 @@ class DropboxUploader
       raise "Dropbox authentication information is not provided"
     end
     @client = Dropbox::API::Client.new(:token => ENV['DROPBOX_CLIENT_TOKEN'], :secret => ENV['DROPBOX_CLIENT_SECRET'])
+    @client.connection.consumer.http.open_timeout = 300
+    @client.connection.consumer.http.read_timeout = 300
   end
 
   def upload_file(file_path)

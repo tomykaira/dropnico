@@ -34,7 +34,11 @@ module Nico
       files = Nico::RSS.from_list(list, agent).fetch_files
 
       files.each do |nico_name|
-        download_video(nico_name, agent)
+        begin
+          download_video(nico_name, agent)
+        rescue Exception => e
+          thread_logger.fatal("Skipping #{nico_name}, try it again by your self")
+        end
       end
     end
   end
